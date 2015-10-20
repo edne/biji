@@ -1,6 +1,6 @@
-# biji
+# Biji
 
-A Clojure library designed to ... well, that part is up to you.
+A wise IRC bot
 
 ## Usage
 
@@ -8,7 +8,8 @@ FIXME
 
 ## License
 
-Copyright © 2015 FIXME
+Copyright © 2015 Edoardo Negri
 
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+Distributed under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version..
