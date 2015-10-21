@@ -12,14 +12,15 @@
 
 (defn connect
   "Connect to a server
-  (connect {:name \"irc.freenode.net\" :port 6667})
-  "
+  (connect {:name \"irc.freenode.net\" :port 6667})"
   [server]
   (let [socket (Socket. (:name server)
                         (:port server))
         in   (BufferedReader. (InputStreamReader. (.getInputStream socket)))
         out  (PrintWriter. (.getOutputStream socket))
-        conn (ref {:in in :out out})]
+        conn (atom {:in  in
+                    :out out
+                    :cb  (fn [msg])})]
 
     (defn conn-handler [conn]
       (while (nil? (:exit @conn))
@@ -29,8 +30,12 @@
             (re-find #"^ERROR :Closing Link:" msg)
             (dosync (alter conn merge {:exit true}))
 
+            (re-find #"^:\S* PRIVMSG" msg)
+            ((:cb @conn) msg)
+
             (re-find #"^PING" msg)
-            (write conn (str "PONG "  (re-find #":.*" msg)))))))
+            (write conn (str "PONG "  (re-find #":.*" msg)))
+            ))))
 
     (doto (Thread. #(conn-handler conn))
       (.start))
@@ -38,10 +43,13 @@
     conn))
 
 
+(defn set-on-msg [conn cb]
+  (swap! conn assoc :cb cb))
+
+
 (defn write
   "Write on the socket
-  (write conn (str \"NICK \" nick))
-  "
+  (write conn (str \"NICK \" nick))"
   [conn msg]
   (doto (:out @conn)
     (.println (str msg "\r"))
@@ -50,8 +58,7 @@
 
 (defn login
   "Login a user
-  (login conn {:name \"Mario Antani\" :nick \"antani\"})
-  "
+  (login conn {:name \"John Antani\" :nick \"antani\"})"
   [conn user]
   (let [nick      (:nick user)
         real-name (:name user)]
