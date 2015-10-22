@@ -7,35 +7,49 @@
                     InputStreamReader
                     BufferedReader)))
 
-(declare connect)
+
 (declare write)
-(declare login)
 
 
 (defn parse-msg
   "Parse a raw message to a map, example message:
   :edne!~edne@poul.org PRIVMSG #biji-test :hi!"
   [msg]
-  {:name (-> (re-find #"^:\S*" msg)
-             (s/split #":") second
-             (s/split #"!") first)
+  (let [user (-> (re-find #"^:\S*" msg)
+                 (s/split #":") second
+                 (s/split #"!") first)
 
-   :addr (-> (re-find #"^:\S*" msg)
-             (s/split #":")
-             second
-             (s/split #"!")
-             second)
+        addr (-> (re-find #"^:\S*" msg)
+                 (s/split #":")
+                 second
+                 (s/split #"!")
+                 second)
 
-   :chan (-> msg
-             (s/split #":")
-             second
-             (s/split #" ")
-             last)
+        dest (-> msg
+                 (s/split #":")
+                 second
+                 (s/split #" ")
+                 last)
 
-   :text (-> msg
-             (s/split #":")
-             (->> (drop 2)
-                  (s/join ":")))})
+        chan (re-find #"#.*" dest)
+
+        text (-> msg
+                 (s/split #":")
+                 (->> (drop 2)
+                      (s/join ":")))]
+    {:user user
+     :addr addr
+     :dest dest
+     :chan chan
+     :text text}))
+
+
+(defn send-msg
+  "Send message to a destination (user or channel"
+  [conn dest text]
+  (let [raw-msg (str "PRIVMSG " dest " :" text)]
+    (log/info "sending: " raw-msg)
+    (write conn raw-msg)))
 
 
 (defn connect
