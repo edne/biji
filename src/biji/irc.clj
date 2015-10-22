@@ -1,6 +1,7 @@
 (ns biji.irc
   "IRC wrapper"
-  (:require [clojure.string :as s])
+  (:require [clojure.string :as s]
+            [clojure.tools.logging :as log])
   (:import (java.net Socket)
            (java.io PrintWriter
                     InputStreamReader
@@ -9,6 +10,32 @@
 (declare connect)
 (declare write)
 (declare login)
+
+
+(defn parse-msg
+  "Parse a raw message to a map, example message:
+  :edne!~edne@poul.org PRIVMSG #biji-test :hi!"
+  [msg]
+  {:name (-> (re-find #"^:\S*" msg)
+             (s/split #":") second
+             (s/split #"!") first)
+
+   :addr (-> (re-find #"^:\S*" msg)
+             (s/split #":")
+             second
+             (s/split #"!")
+             second)
+
+   :chan (-> msg
+             (s/split #":")
+             second
+             (s/split #" ")
+             last)
+
+   :text (-> msg
+             (s/split #":")
+             (->> (drop 2)
+                  (s/join ":")))})
 
 
 (defn connect
@@ -23,39 +50,24 @@
                     :out out
                     :cb  (fn [msg])})]
 
-    (defn conn-handler [conn]
+    (defn conn-handler
+      "While the connection is alive:
+      - call the on-message callback
+      - handle errors
+      - respond to pings"
+      [conn]
       (while (nil? (:exit @conn))
         (let [msg (.readLine (:in @conn))]
-          (println msg)
+          (log/info msg)
           (cond
+            (re-find #"^:\S* PRIVMSG" msg)
+            ((:cb @conn) (parse-msg msg))
+
             (re-find #"^ERROR :Closing Link:" msg)
             (dosync (alter conn merge {:exit true}))
 
-            (re-find #"^:\S* PRIVMSG" msg)
-            ((:cb @conn) {:name (-> (re-find #"^:\S*" msg)
-                                    (s/split #":") (get 1)
-                                    (s/split #"!") first)
-
-                          :addr (-> (re-find #"^:\S*" msg)
-                                    (s/split #":")
-                                    (get 1)
-                                    (s/split #"!")
-                                    (get 1))
-
-                          :chan (-> msg
-                                    (s/split #":")
-                                    (get 1)
-                                    (s/split #" ")
-                                    last)
-
-                          :text (-> msg
-                                    (s/split #":")
-                                    (->> (drop 2)
-                                         (s/join ":")))})
-
             (re-find #"^PING" msg)
-            (write conn (str "PONG "  (re-find #":.*" msg)))
-            ))))
+            (write conn (str "PONG " (re-find #":.*" msg)))))))
 
     (doto (Thread. #(conn-handler conn))
       (.start))
@@ -63,7 +75,9 @@
     conn))
 
 
-(defn set-on-msg [conn cb]
+(defn set-on-msg
+  "Set the on-message callback"
+  [conn cb]
   (swap! conn assoc :cb cb))
 
 
