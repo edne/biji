@@ -1,5 +1,6 @@
 (ns biji.irc
   "IRC wrapper"
+  (:require [clojure.string :as s])
   (:import (java.net Socket)
            (java.io PrintWriter
                     InputStreamReader
@@ -31,7 +32,26 @@
             (dosync (alter conn merge {:exit true}))
 
             (re-find #"^:\S* PRIVMSG" msg)
-            ((:cb @conn) msg)
+            ((:cb @conn) {:name (-> (re-find #"^:\S*" msg)
+                                    (s/split #":") (get 1)
+                                    (s/split #"!") first)
+
+                          :addr (-> (re-find #"^:\S*" msg)
+                                    (s/split #":")
+                                    (get 1)
+                                    (s/split #"!")
+                                    (get 1))
+
+                          :chan (-> msg
+                                    (s/split #":")
+                                    (get 1)
+                                    (s/split #" ")
+                                    last)
+
+                          :text (-> msg
+                                    (s/split #":")
+                                    (->> (drop 2)
+                                         (s/join ":")))})
 
             (re-find #"^PING" msg)
             (write conn (str "PONG "  (re-find #":.*" msg)))

@@ -3,8 +3,11 @@
 
 
 (defn -main [& args]
-  (let [conn (irc/connect {:name "irc.freenode.net"
-                           :port 6667})]
+  (let [freenode {:name "irc.freenode.net"
+                  :port 6667}
+        localhost {:name "127.0.0.1"
+                   :port 6667}
+        conn (irc/connect localhost)]
     (irc/set-on-msg conn #(println %))
     (irc/login conn {:name "Biji the Wise"
                      :nick "biji"})
