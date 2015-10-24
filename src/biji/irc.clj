@@ -1,11 +1,10 @@
 (ns biji.irc
   "IRC wrapper"
   (:require [clojure.string :as s]
+            [clojure.java.io :as io]
             [clojure.tools.logging :as log])
-  (:import (java.net Socket)
-           (java.io PrintWriter
-                    InputStreamReader
-                    BufferedReader)))
+  (:import java.net.Socket
+           javax.net.ssl.SSLSocketFactory))
 
 
 (declare write)
@@ -54,14 +53,16 @@
 
 (defn connect
   "Connect to a server
-  (connect {:name \"irc.freenode.net\" :port 6667})"
+  (connect {:host \"irc.freenode.net\" :port 6667})"
   [server]
-  (let [socket (Socket. (:name server)
-                        (:port server))
-        in   (BufferedReader. (InputStreamReader. (.getInputStream socket)))
-        out  (PrintWriter. (.getOutputStream socket))
-        conn (atom {:in  in
-                    :out out
+  (let [host (:host server)
+        port (:port server)
+        ;socket (Socket. host port)
+        socket (if (:ssl? server)
+                 (.createSocket (SSLSocketFactory/getDefault) host port)
+                 (Socket. host port))
+        conn (atom {:in  (io/reader socket)
+                    :out (io/writer socket)
                     :cb  (fn [msg])})]
 
     (defn conn-handler
@@ -99,9 +100,9 @@
   "Write on the socket
   (write conn (str \"NICK \" nick))"
   [conn msg]
-  (doto (:out @conn)
-    (.println (str msg "\r"))
-    (.flush)))
+  (binding [*out* (:out @conn)]
+    (println msg)
+    (flush)))
 
 
 (defn login
