@@ -1,6 +1,7 @@
 (ns biji.core
   (:require [clojure.tools.logging :as log]
-            [biji.irc :as irc]))
+            [biji.irc :as irc]
+            [biji.memory :as memory]))
 
 
 (defn -main [& args]
@@ -10,14 +11,17 @@
           azzurra      {:host "nexlab.azzurra.org" :port 6667}
           azzurra-ssl  {:host "nexlab.azzurra.org" :port 443  :ssl? true}
           localhost    {:host "127.0.0.1"          :port 6667}
-          conn (irc/connect azzurra-ssl)]
+          conn (irc/connect localhost)
+          mem  (memory/create)]
 
-      (defn reply [msg]
-        (irc/send-msg conn
-                      (or (:chan msg) (:user msg))
-                      (str "echoing: " (:text msg))))
+      (defn on-msg [msg]
+        (if (re-find #"biji" (:text msg))
+          (irc/send-msg conn
+                        (or (:chan msg) (:user msg))
+                        (memory/pick mem))
+          (memory/append mem msg)))
 
-      (irc/set-on-msg conn reply)
+      (irc/set-on-msg conn on-msg)
       (irc/login conn {:name "Biji the Wise"
                        :nick "biji"})
       (irc/write conn "JOIN #biji-test")

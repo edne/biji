@@ -40,7 +40,8 @@
      :addr addr
      :dest dest
      :chan chan
-     :text text}))
+     :text text
+     :raw  msg}))
 
 
 (defn send-msg
