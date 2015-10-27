@@ -5,8 +5,8 @@ A wise IRC bot
 
 ## Todo
 
-- Basic IRC interface
-- A Markow chain
+- User/Channel handling
+- Markow chain
 - Something better...
 
 
