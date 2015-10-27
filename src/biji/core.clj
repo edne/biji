@@ -3,16 +3,13 @@
             [biji.irc :as irc]
             [biji.memory :as memory]))
 
+(load-file "config.clj")
+
 
 (defn -main [& args]
   (try
-    (let [freenode     {:host "irc.freenode.net"   :port 6667}
-          freenode-ssl {:host "irc.freenode.net"   :port 6697 :ssl? true}
-          azzurra      {:host "nexlab.azzurra.org" :port 6667}
-          azzurra-ssl  {:host "nexlab.azzurra.org" :port 443  :ssl? true}
-          localhost    {:host "127.0.0.1"          :port 6667}
-          conn (irc/connect localhost)
-          mem  (memory/create "memory.txt")]
+    (let [conn (irc/connect server)
+          mem  (memory/create memory-file)]
 
       (defn on-msg [msg]
         (if (re-find #"biji" (:text msg))
@@ -24,7 +21,7 @@
       (irc/set-on-msg conn on-msg)
       (irc/login conn {:name "Biji the Wise"
                        :nick "biji"})
-      (irc/write conn "JOIN #biji-test")
+      (irc/write conn (str "JOIN " channel))
       ;(write conn "QUIT")
       )
     (catch java.net.UnknownHostException e
