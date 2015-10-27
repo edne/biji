@@ -12,7 +12,7 @@
           azzurra-ssl  {:host "nexlab.azzurra.org" :port 443  :ssl? true}
           localhost    {:host "127.0.0.1"          :port 6667}
           conn (irc/connect localhost)
-          mem  (memory/create)]
+          mem  (memory/create "memory.txt")]
 
       (defn on-msg [msg]
         (if (re-find #"biji" (:text msg))
