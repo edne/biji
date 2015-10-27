@@ -38,6 +38,6 @@
 
 (defn pick [mem]
   "Take a random element"
-  (if (empty? @mem)
+  (if (-> @mem empty? :msg-list)
     "nope"
     (-> @mem :msg-list rand-nth :text)))
