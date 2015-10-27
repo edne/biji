@@ -8,4 +8,5 @@
     localhost))
 
 (def channel "#biji-test")
-(def memory-file "~/.biji-memory.txt")
+(def memory-file (str (System/getenv "HOME")
+                      "/.biji-memory.txt"))
